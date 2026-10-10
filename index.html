@@ -1,0 +1,1292 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Compute in Transit 04 — The Fixed-Band Experiment</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:wght@400;500;600;700&family=Instrument+Sans:ital,wght@0,400;0,500;0,600;0,700;1,400;1,700&family=Geist+Mono:ital,wght@0,400;0,500;0,600;0,700;1,400;1,700&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --bg-primary: #1c1815;
+            --bg-card: #231e1a;
+            --bg-code: #2b2520;
+            --text-primary: #efe8dc;
+            --text-secondary: #a2978b;
+            --accent: #6cb6c4;
+            --accent-dim: #6cb6c444;
+            --accent-glow: #6cb6c433;
+            --border: #3a322b;
+            --font-display: 'Bricolage Grotesque', sans-serif;
+            --font-mono: 'Geist Mono', 'Geist Mono', monospace;
+            --font-body: 'Instrument Sans', sans-serif;
+            --max-width: 900px;
+        }
+
+        *, *::before, *::after {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        html {
+            scroll-behavior: smooth;
+        }
+
+        body {
+            background: var(--bg-primary);
+            color: var(--text-primary);
+            font-family: var(--font-body);
+            font-size: 17px;
+            line-height: 1.7;
+            overflow-x: hidden;
+        }
+
+        /* ── Header ── */
+        .hero {
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            padding: 2rem 1.5rem;
+            text-align: center;
+            position: relative;
+        }
+
+        .hero::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 600px;
+            height: 600px;
+            background: radial-gradient(circle, var(--accent-glow) 0%, transparent 70%);
+            pointer-events: none;
+            z-index: 0;
+        }
+
+        .hero > * {
+            position: relative;
+            z-index: 1;
+        }
+
+        .series-label {
+            font-family: var(--font-mono);
+            font-size: 0.85rem;
+            color: var(--accent);
+            letter-spacing: 0.15em;
+            text-transform: uppercase;
+            margin-bottom: 1rem;
+        }
+
+        .hero h1 {
+            font-family: var(--font-display);
+            font-size: clamp(2rem, 5vw, 3.2rem);
+            font-weight: 700;
+            color: var(--text-primary);
+            line-height: 1.2;
+            margin-bottom: 1rem;
+        }
+
+        .hero h1 .accent {
+            color: var(--accent);
+        }
+
+        .hero .subtitle {
+            font-size: 1.1rem;
+            color: var(--text-secondary);
+            max-width: 600px;
+            margin-bottom: 2rem;
+        }
+
+        /* ── Tag Pills ── */
+        .tags {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 0.5rem;
+            justify-content: center;
+            margin-bottom: 2.5rem;
+        }
+
+        .tag {
+            font-family: var(--font-mono);
+            font-size: 0.75rem;
+            padding: 0.25rem 0.75rem;
+            border-radius: 999px;
+            border: 1px solid var(--accent);
+            color: var(--accent);
+            background: var(--accent-dim);
+            white-space: nowrap;
+        }
+
+        /* ── Pipeline Flow Bar ── */
+        .pipeline {
+            display: flex;
+            flex-wrap: wrap;
+            align-items: center;
+            justify-content: center;
+            gap: 0.25rem;
+            margin-bottom: 1rem;
+            max-width: var(--max-width);
+        }
+
+        .pipeline-step {
+            font-family: var(--font-mono);
+            font-size: 0.7rem;
+            padding: 0.3rem 0.7rem;
+            background: var(--bg-card);
+            border: 1px solid var(--border);
+            border-radius: 4px;
+            color: var(--text-secondary);
+            white-space: nowrap;
+        }
+
+        .pipeline-arrow {
+            color: var(--accent);
+            font-size: 0.9rem;
+            font-weight: 700;
+        }
+
+        /* ── Slides ── */
+        .slide {
+            min-height: 100vh;
+            max-width: var(--max-width);
+            margin: 0 auto;
+            padding: 4rem 1.5rem;
+            position: relative;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+        }
+
+        .slide-number {
+            font-family: var(--font-display);
+            font-size: 5rem;
+            font-weight: 700;
+            color: var(--accent-dim);
+            position: absolute;
+            top: 2rem;
+            right: 1.5rem;
+            line-height: 1;
+            user-select: none;
+        }
+
+        .slide h2 {
+            font-family: var(--font-display);
+            font-size: 1.9rem;
+            font-weight: 700;
+            color: var(--accent);
+            margin-bottom: 1.5rem;
+            line-height: 1.25;
+        }
+
+        .slide h3 {
+            font-family: var(--font-display);
+            font-size: 1.3rem;
+            font-weight: 600;
+            color: var(--text-primary);
+            margin-top: 1.5rem;
+            margin-bottom: 0.75rem;
+        }
+
+        .slide p {
+            margin-bottom: 1rem;
+            color: var(--text-secondary);
+        }
+
+        .slide p strong {
+            color: var(--text-primary);
+        }
+
+        .slide ul, .slide ol {
+            margin-bottom: 1rem;
+            padding-left: 1.5rem;
+            color: var(--text-secondary);
+        }
+
+        .slide li {
+            margin-bottom: 0.4rem;
+        }
+
+        .slide li strong {
+            color: var(--text-primary);
+        }
+
+        /* ── Code Blocks ── */
+        .code-block {
+            background: var(--bg-code);
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            margin: 1.25rem 0;
+            overflow: hidden;
+        }
+
+        .code-header {
+            font-family: var(--font-mono);
+            font-size: 0.75rem;
+            color: var(--accent);
+            background: rgba(108,182,196,0.08);
+            padding: 0.4rem 1rem;
+            border-bottom: 1px solid var(--border);
+        }
+
+        .code-block pre {
+            margin: 0;
+            padding: 1rem;
+            overflow-x: auto;
+        }
+
+        .code-block code {
+            font-family: var(--font-mono);
+            font-size: 0.85rem;
+            line-height: 1.6;
+            color: #dad1c5;
+        }
+
+        /* Syntax highlighting (manual) */
+        .kw { color: #de805a; }
+        .fn { color: #d7bbdf; }
+        .str { color: #bcdbd4; }
+        .cm { color: #a2978b; font-style: italic; }
+        .num { color: #97cdc6; }
+        .type { color: #e3b174; }
+        .dir { color: #de805a; }
+        .mac { color: #e3b174; }
+
+        /* ── Tables ── */
+        .table-wrap {
+            overflow-x: auto;
+            margin: 1.25rem 0;
+            border-radius: 8px;
+            border: 1px solid var(--border);
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 0.9rem;
+        }
+
+        th {
+            background: var(--bg-code);
+            color: var(--accent);
+            font-weight: 600;
+            text-align: left;
+            padding: 0.75rem 1rem;
+            border-bottom: 1px solid var(--border);
+            font-family: var(--font-display);
+            white-space: nowrap;
+        }
+
+        .table-wrap th { white-space: normal; }   /* long headers wrap rather than widen the table */
+
+        td {
+            padding: 0.6rem 1rem;
+            border-bottom: 1px solid var(--border);
+            color: var(--text-secondary);
+        }
+
+        tr:last-child td {
+            border-bottom: none;
+        }
+
+        tr:nth-child(even) td {
+            background: rgba(35,30,26,0.5);
+        }
+
+        /* ── Diagrams ── */
+        .diagram-flow {
+            display: flex;
+            flex-wrap: wrap;
+            align-items: center;
+            justify-content: center;
+            gap: 0.5rem;
+            margin: 1.5rem 0;
+            padding: 1.5rem;
+            background: var(--bg-card);
+            border: 1px solid var(--border);
+            border-radius: 8px;
+        }
+
+        .diagram-box {
+            font-family: var(--font-mono);
+            font-size: 0.85rem;
+            padding: 0.5rem 1rem;
+            background: var(--bg-code);
+            border: 1px solid var(--border);
+            border-radius: 6px;
+            color: var(--text-primary);
+            text-align: center;
+            white-space: nowrap;
+        }
+
+        .diagram-box.accent {
+            border-color: var(--accent);
+            color: var(--accent);
+            background: rgba(108,182,196,0.08);
+        }
+
+        .diagram-box.dim {
+            color: var(--text-secondary);
+            border-color: var(--border);
+        }
+
+        .diagram-arrow {
+            color: var(--accent);
+            font-size: 1.3rem;
+            font-weight: 700;
+        }
+
+        /* Vertical flow diagrams */
+        .diagram-vertical {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 0.3rem;
+            margin: 1.5rem 0;
+            padding: 1.5rem;
+            background: var(--bg-card);
+            border: 1px solid var(--border);
+            border-radius: 8px;
+        }
+
+        .diagram-vertical .diagram-arrow {
+            font-size: 1.1rem;
+        }
+
+        /* Nested hierarchy diagram */
+        .hierarchy {
+            display: flex;
+            flex-direction: column;
+            gap: 0.75rem;
+            margin: 1.5rem 0;
+            padding: 1.5rem;
+            background: var(--bg-card);
+            border: 1px solid var(--border);
+            border-radius: 8px;
+        }
+
+        .hierarchy-level {
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+        }
+
+        .hierarchy-label {
+            font-family: var(--font-mono);
+            font-size: 0.75rem;
+            color: var(--text-secondary);
+            min-width: 80px;
+            text-align: right;
+        }
+
+        .hierarchy-items {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 0.35rem;
+        }
+
+        .hierarchy-item {
+            font-family: var(--font-mono);
+            font-size: 0.75rem;
+            padding: 0.3rem 0.6rem;
+            border-radius: 4px;
+            background: var(--bg-code);
+            border: 1px solid var(--border);
+            color: var(--text-secondary);
+        }
+
+        .hierarchy-item.accent {
+            border-color: var(--accent);
+            color: var(--accent);
+            background: rgba(108,182,196,0.08);
+        }
+
+        /* Grid diagram */
+        .diagram-grid {
+            display: grid;
+            gap: 0.75rem;
+            margin: 1.5rem 0;
+            padding: 1.5rem;
+            background: var(--bg-card);
+            border: 1px solid var(--border);
+            border-radius: 8px;
+        }
+
+        .diagram-grid.cols-2 {
+            grid-template-columns: 1fr 1fr;
+        }
+
+        .diagram-grid.cols-3 {
+            grid-template-columns: 1fr 1fr 1fr;
+        }
+
+        .diagram-panel {
+            padding: 1rem;
+            background: var(--bg-code);
+            border: 1px solid var(--border);
+            border-radius: 6px;
+        }
+
+        .diagram-panel.accent-border {
+            border-left: 3px solid var(--accent);
+        }
+
+        .diagram-panel h4 {
+            font-family: var(--font-display);
+            font-size: 1rem;
+            color: var(--accent);
+            margin-bottom: 0.5rem;
+        }
+
+        .diagram-panel p, .diagram-panel ul {
+            font-size: 0.85rem;
+        }
+
+        /* ── Callout Boxes ── */
+        .callout {
+            background: var(--bg-card);
+            border-left: 3px solid var(--accent);
+            border-radius: 0 8px 8px 0;
+            padding: 1rem 1.25rem;
+            margin: 1.25rem 0;
+        }
+
+        .callout p {
+            margin-bottom: 0;
+        }
+
+        .callout .callout-label {
+            font-family: var(--font-mono);
+            font-size: 0.75rem;
+            color: var(--accent);
+            text-transform: uppercase;
+            letter-spacing: 0.1em;
+            margin-bottom: 0.3rem;
+        }
+
+        /* ── Tier Visual ── */
+        .tier-visual {
+            display: flex;
+            flex-direction: column;
+            gap: 0.5rem;
+            margin: 1.5rem 0;
+            padding: 1.5rem;
+            background: var(--bg-card);
+            border: 1px solid var(--border);
+            border-radius: 8px;
+        }
+
+        .tier-bar {
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+        }
+
+        .tier-label {
+            font-family: var(--font-mono);
+            font-size: 0.75rem;
+            color: var(--text-secondary);
+            min-width: 90px;
+            text-align: right;
+        }
+
+        .tier-fill {
+            height: 32px;
+            border-radius: 4px;
+            display: flex;
+            align-items: center;
+            padding: 0 0.75rem;
+            font-family: var(--font-mono);
+            font-size: 0.7rem;
+            white-space: nowrap;
+            transition: width 0.6s ease;
+        }
+
+        .tier-cost {
+            font-family: var(--font-mono);
+            font-size: 0.7rem;
+            color: var(--text-secondary);
+            min-width: 70px;
+        }
+
+        /* ── Contents list ── */
+        .contents-list {
+            list-style: none;
+            padding-left: 0;
+            counter-reset: contents;
+        }
+
+        .contents-list li {
+            counter-increment: contents;
+            padding: 0.6rem 0;
+            border-bottom: 1px solid var(--border);
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+        }
+
+        .contents-list li:last-child {
+            border-bottom: none;
+        }
+
+        .contents-list li::before {
+            content: counter(contents, decimal-leading-zero);
+            font-family: var(--font-mono);
+            font-size: 0.85rem;
+            color: var(--accent);
+            min-width: 2rem;
+        }
+
+        .contents-list a {
+            color: var(--text-primary);
+            text-decoration: none;
+            transition: color 0.2s;
+        }
+
+        .contents-list a:hover {
+            color: var(--accent);
+        }
+
+        /* ── Footer ── */
+        .footer {
+            text-align: center;
+            padding: 3rem 1.5rem;
+            color: var(--text-secondary);
+            font-size: 0.85rem;
+            border-top: 1px solid var(--border);
+            max-width: var(--max-width);
+            margin: 0 auto;
+        }
+
+        .footer a {
+            color: var(--accent);
+            text-decoration: none;
+        }
+
+        .footer a:hover {
+            text-decoration: underline;
+        }
+
+        /* ── Responsive ── */
+        @media (max-width: 640px) {
+            .slide {
+                padding: 3rem 1rem;
+                min-height: auto;
+            }
+
+            .slide-number {
+                font-size: 3rem;
+                top: 1.5rem;
+                right: 1rem;
+            }
+
+            .slide h2 {
+                font-size: 1.5rem;
+            }
+
+            .diagram-grid.cols-2,
+            .diagram-grid.cols-3 {
+                grid-template-columns: 1fr;
+            }
+
+            .pipeline {
+                gap: 0.15rem;
+            }
+
+            .pipeline-step {
+                font-size: 0.6rem;
+                padding: 0.2rem 0.4rem;
+            }
+
+            .hero h1 {
+                font-size: 1.8rem;
+            }
+
+            table {
+                font-size: 0.78rem;
+            }
+
+            .tier-label {
+                min-width: 60px;
+                font-size: 0.65rem;
+            }
+
+            .tier-fill {
+                font-size: 0.6rem;
+                height: 26px;
+            }
+        }
+
+        /* ── Interactive controls (added for Local LLM series) ── */
+        .control-panel {
+            background: var(--bg-card);
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            padding: 1.25rem;
+            margin: 1.25rem 0;
+        }
+        .control-row {
+            display: flex;
+            flex-wrap: wrap;
+            align-items: center;
+            gap: 0.75rem;
+            margin-bottom: 0.75rem;
+        }
+        .control-row label {
+            font-family: var(--font-mono);
+            font-size: 0.8rem;
+            color: var(--text-secondary);
+            min-width: 180px;
+        }
+        .control-row input[type="range"] {
+            flex: 1;
+            min-width: 160px;
+            accent-color: var(--accent);
+        }
+        .control-row input[type="number"],
+        .control-row select {
+            background: var(--bg-code);
+            border: 1px solid var(--border);
+            color: var(--text-primary);
+            border-radius: 4px;
+            padding: 0.3rem 0.5rem;
+            font-family: var(--font-mono);
+            font-size: 0.8rem;
+        }
+        .control-row .val {
+            font-family: var(--font-mono);
+            font-size: 0.85rem;
+            color: var(--accent);
+            min-width: 80px;
+            text-align: right;
+        }
+        .btn {
+            font-family: var(--font-mono);
+            font-size: 0.8rem;
+            padding: 0.4rem 0.9rem;
+            background: var(--accent-dim);
+            color: var(--accent);
+            border: 1px solid var(--accent);
+            border-radius: 4px;
+            cursor: pointer;
+            transition: background 0.15s ease;
+        }
+        .btn:hover { background: rgba(108,182,196,0.2); }
+        .btn:disabled { opacity: 0.4; cursor: not-allowed; }
+        .btn.secondary {
+            background: var(--bg-code);
+            color: var(--text-secondary);
+            border-color: var(--border);
+        }
+        .result-box {
+            background: var(--bg-code);
+            border: 1px solid var(--border);
+            border-left: 3px solid var(--accent);
+            border-radius: 4px;
+            padding: 0.75rem 1rem;
+            font-family: var(--font-mono);
+            font-size: 0.85rem;
+            color: var(--text-primary);
+            margin-top: 0.75rem;
+        }
+        .result-box .line-label { color: var(--text-secondary); }
+        .result-box .line-val   { color: var(--accent); font-weight: 600; }
+        .metric-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+            gap: 0.5rem;
+            margin-top: 0.75rem;
+        }
+        .metric {
+            background: var(--bg-code);
+            border: 1px solid var(--border);
+            border-radius: 6px;
+            padding: 0.6rem 0.8rem;
+            text-align: center;
+        }
+        .metric .metric-label {
+            font-family: var(--font-mono);
+            font-size: 0.7rem;
+            color: var(--text-secondary);
+            text-transform: uppercase;
+            letter-spacing: 0.08em;
+        }
+        .metric .metric-value {
+            font-family: var(--font-display);
+            font-size: 1.25rem;
+            color: var(--accent);
+            font-weight: 600;
+            margin-top: 0.2rem;
+        }
+
+        /* Canvas / SVG containers */
+        .canvas-wrap {
+            background: var(--bg-card);
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            padding: 1rem;
+            margin: 1.25rem 0;
+            overflow-x: auto;
+        }
+        .canvas-wrap canvas,
+        .canvas-wrap svg {
+            display: block;
+            margin: 0 auto;
+            max-width: 100%;
+        }
+
+        /* Small inline badge */
+        .badge {
+            display: inline-block;
+            font-family: var(--font-mono);
+            font-size: 0.65rem;
+            padding: 0.1rem 0.45rem;
+            border-radius: 999px;
+            border: 1px solid var(--border);
+            color: var(--text-secondary);
+            vertical-align: middle;
+            margin-left: 0.3rem;
+        }
+        .badge.ok    { border-color: var(--accent); color: var(--accent); background: var(--accent-dim); }
+        .badge.warn  { border-color: #e3b174; color: #e3b174; background: rgba(227,177,116,0.08); }
+        .badge.bad   { border-color: #de805a; color: #de805a; background: rgba(222,128,90,0.08); }
+
+
+        /* ── LLM Inference Simulators additions ── */
+        .canvas-wrap canvas { image-rendering: auto; display: block; width: 100%; height: auto; }
+        .canvas-wrap svg { max-width: 100%; height: auto; }
+        .ladder { display: grid; gap: 0.4rem; margin: 1.25rem 0; }
+        .ladder-row {
+            display: grid; grid-template-columns: 11rem 1fr 7.5rem; gap: 0.75rem; align-items: center;
+            background: var(--bg-card); border: 1px solid var(--border); border-radius: 6px;
+            padding: 0.55rem 0.85rem; font-size: 0.88rem;
+        }
+        .ladder-row .rung { font-family: var(--font-display); font-weight: 600; color: var(--accent); }
+        .ladder-row .speed { font-family: var(--font-mono); font-size: 0.78rem; color: var(--text-secondary); text-align: right; }
+        .res-list { list-style: none; padding: 0; margin: 0.75rem 0; }
+        .res-list li { padding: 0.6rem 0; border-bottom: 1px solid var(--border); font-size: 0.92rem; }
+        .res-list li:last-child { border-bottom: none; }
+        .res-list .what { color: var(--text-secondary); display: block; font-size: 0.86rem; margin-top: 0.15rem; }
+        .res-list a { color: var(--accent); text-decoration: none; }
+        .res-list a:hover { text-decoration: underline; }
+        .qa { background: var(--bg-card); border: 1px solid var(--border); border-radius: 8px; margin: 0.6rem 0; padding: 0.2rem 1rem; }
+        .qa summary { cursor: pointer; padding: 0.6rem 0; font-weight: 600; }
+        .qa p, .qa ul { margin-bottom: 0.75rem; font-size: 0.92rem; }
+        .sim-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(230px, 1fr)); gap: 0.4rem 1.25rem; }
+        .chart-pair { display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 1rem; }
+        .chart-title { font-family: var(--font-mono); font-size: 0.75rem; color: var(--text-secondary); margin-bottom: 0.3rem; }
+        .slide a { color: var(--accent); }
+        @media (max-width: 640px) {
+            .ladder-row { grid-template-columns: 1fr; gap: 0.2rem; }
+            .ladder-row .speed { text-align: left; }
+        }
+        .concepts { background: var(--bg-card); border: 1px solid var(--border); border-left: 3px solid var(--accent); border-radius: 6px; padding: 0.75rem 1rem; margin-top: 1.25rem; font-size: 0.88rem; }
+        .concepts p { margin: 0 0 0.4rem; color: var(--text-secondary); }
+        .concepts .chips { display: flex; flex-wrap: wrap; gap: 0.35rem 0.5rem; }
+        .concepts .chips a { border: 1px solid var(--border); border-radius: 999px; padding: 0.1rem 0.6rem; text-decoration: none; font-size: 0.82rem; }
+        .concepts .chips a:hover { border-color: var(--accent); }
+        .hero { overflow: hidden; }   /* the 600px glow must not widen the page on phones */
+        .chart-pair > *, .diagram-grid > *, .sim-grid > * { min-width: 0; }   /* let wide code scroll inside its column */
+        .slide p code, .slide li code, .slide td code { overflow-wrap: anywhere; }
+        @media (max-width: 640px) { .diagram-box { white-space: normal; max-width: 100%; } }   /* long boxes must wrap on phones */
+        /* FOptInf: keep long titles clear of the slide number on phones */
+        @media (max-width: 640px) { .slide h2 { padding-right: 3.6rem; } }
+        .sim-grid select, .sim-grid input[type="range"] { max-width: 100%; min-width: 0; }   /* long option labels must not spill into the next column */
+    </style>
+</head>
+<body>
+
+<header class="hero">
+    <div class="series-label">Compute in Transit &mdash; Presentation 04</div>
+    <h1>The <span class="accent">Fixed-Band</span> Experiment</h1>
+    <p class="subtitle">A link module that computes in transit cannot do DeMo&rsquo;s top-k: it has no comparisons. Could a fixed frequency band, which needs none, take top-k&rsquo;s place? A 15.8M-parameter GPT trained on TinyStories with eight simulated workers says no. This deck shows the loss and the bytes, why the band misses the momentum&rsquo;s energy, how the emulated optics first diverged and how it was fixed, and what that means for a link module.</p>
+
+    <div class="tags">
+        <span class="tag">DeMo</span>
+        <span class="tag">Fixed band vs top-k</span>
+        <span class="tag">Captured energy</span>
+        <span class="tag">Error feedback</span>
+        <span class="tag">Emulated optics</span>
+        <span class="tag">ENOB</span>
+    </div>
+
+    <div class="pipeline">
+        <span class="pipeline-step">Momentum</span>
+        <span class="pipeline-arrow">&rarr;</span>
+        <span class="pipeline-step">DCT in chunks</span>
+        <span class="pipeline-arrow">&rarr;</span>
+        <span class="pipeline-step">Top-k, or a fixed band?</span>
+        <span class="pipeline-arrow">&rarr;</span>
+        <span class="pipeline-step">All-gather</span>
+        <span class="pipeline-arrow">&rarr;</span>
+        <span class="pipeline-step">Sign update</span>
+    </div>
+</header>
+
+<section class="slide" id="slide-00">
+    <div class="slide-number">00</div>
+    <h2>Topics We'll Cover</h2>
+    <ul class="contents-list">
+        <li><a href="#slide-01">The Question</a></li>
+        <li><a href="#slide-02">The Setup</a></li>
+        <li><a href="#slide-03">Bytes per Step: Payload and Wire (Interactive)</a></li>
+        <li><a href="#slide-04">Loss: a Fixed Band Does Not Replace Top-k</a></li>
+        <li><a href="#slide-05">Loss per Byte: Steps to Reach a Loss</a></li>
+        <li><a href="#slide-06">Why: the Band Misses the Momentum's Energy</a></li>
+        <li><a href="#slide-07">Emulating the Optics</a></li>
+        <li><a href="#slide-08">The First Optics Runs Diverged</a></li>
+        <li><a href="#slide-09">The Fix: Feed Back What Was Sent</a></li>
+        <li><a href="#slide-10">ENOB and Bit Planes</a></li>
+        <li><a href="#slide-11">What It Means for a Link Module</a></li>
+        <li><a href="#slide-12">Limits, Next Steps, and What to Take Away</a></li>
+    </ul>
+    <div class="callout">
+        <div class="callout-label">Where this deck sits</div>
+        <p><a href="https://brendanjameslynskey.github.io/CiT_01_Compute_in_Transit/">Deck 01</a> sets the budget and the five tests for a photonic link module (<a href="https://arxiv.org/abs/2608.21536">arXiv:2608.21536</a>): a QSFP56 pluggable whose published operations are FFT, NTT, MAC, and modular and floating-point arithmetic, with no comparisons, rounding or top-k. <a href="https://brendanjameslynskey.github.io/CiT_02_Data_Movement_in_LLM_Training/#slide-10">Deck 02</a> found the strongest candidate in training, DeMo&rsquo;s compressed momentum, and planned this experiment. This deck reports it. Code, logs and every number: <a href="https://github.com/BrendanJamesLynskey/DeMo_Fixed_Band_Experiment">DeMo_Fixed_Band_Experiment</a>.</p>
+    </div>
+    <div class="concepts">
+        <p><strong>Concepts used here, and where they are explained.</strong> Each is defined, with links, in the <a href="https://brendanjameslynskey.github.io/LLM_Hub_Compute_in_Transit/#glossary">series glossary</a>.</p>
+        <div class="chips"><a href="https://brendanjameslynskey.github.io/LLM_Hub_Compute_in_Transit/#g-demo" title="Each worker keeps its own momentum, applies a DCT to it in chunks, sends the top-k components and subtracts what it sent.">DeMo</a><a href="https://brendanjameslynskey.github.io/LLM_Hub_Compute_in_Transit/#g-fixedband" title="Keeping a fixed set of transform coefficients instead of the largest ones: a gather with no comparisons.">Fixed band in place of top-k</a><a href="https://brendanjameslynskey.github.io/LLM_Hub_Compute_in_Transit/#g-errorfeedback" title="Keeping the part of an update that compression discarded and adding it back next time.">Error feedback</a><a href="https://brendanjameslynskey.github.io/LLM_Hub_Compute_in_Transit/#g-residual" title="What error feedback keeps: everything not yet sent, decaying slowly.">Residual</a><a href="https://brendanjameslynskey.github.io/LLM_Hub_Compute_in_Transit/#g-capturedenergy" title="The share of a tensor's energy that a selector keeps at a given number of coefficients.">Captured energy</a><a href="https://brendanjameslynskey.github.io/LLM_Hub_Compute_in_Transit/#g-wirebytes" title="Payload is what a worker originates; wire bytes are what it sends in its collective.">Payload and wire bytes</a><a href="https://brendanjameslynskey.github.io/LLM_Hub_Compute_in_Transit/#g-ringallreduce" title="A reduce-scatter then an all-gather round a ring; each worker sends 2(N-1)/N times the buffer.">Ring all-reduce</a><a href="https://brendanjameslynskey.github.io/LLM_Hub_Compute_in_Transit/#g-bitplanes" title="Feeding an integer through a linear optical transform one binary digit at a time, then recombining.">Bit planes</a><a href="https://brendanjameslynskey.github.io/LLM_Hub_Compute_in_Transit/#g-enob" title="Effective number of bits: the precision a noisy analogue readout delivers.">ENOB</a><a href="https://brendanjameslynskey.github.io/LLM_Hub_Compute_in_Transit/#g-sentfeedback" title="Error feedback of the values the optics actually produced, which each worker receives back in an all-gather.">Feedback of the values sent</a></div>
+    </div>
+</section>
+
+<section class="slide" id="slide-01">
+    <div class="slide-number">01</div>
+    <h2>The Question</h2>
+    <p>DeMo (Peng et al., <a href="https://arxiv.org/abs/2411.19870">arXiv:2411.19870</a>, ICLR 2026) lets each worker keep its own momentum. Every step it takes a chunked DCT of that momentum, sends the <strong>top-k</strong> coefficients of each chunk, and subtracts what it sent; the workers all-gather the values, and each applies the sign of the averaged update.</p>
+    <div class="diagram-grid cols-2">
+        <div class="diagram-panel accent-border">
+            <h4>Top-k, as published</h4>
+            <ul>
+                <li>Keeps the largest coefficients of each chunk: the most energy for the bytes.</li>
+                <li>Needs <strong>comparisons</strong> to find them, and sends their positions as well as their values.</li>
+                <li>Not in the module&rsquo;s published operation set.</li>
+            </ul>
+        </div>
+        <div class="diagram-panel accent-border">
+            <h4>A fixed band</h4>
+            <ul>
+                <li>Keeps the same positions in every chunk, every step: a <strong>gather</strong>, no comparisons.</li>
+                <li>Sends values only, so half the bytes of top-k at the same k.</li>
+                <li>Fits the module, but keeps the energy only if the momentum&rsquo;s energy sits in that band.</li>
+            </ul>
+        </div>
+    </div>
+    <div class="callout">
+        <div class="callout-label">Two questions</div>
+        <p><strong>1.</strong> Does DeMo still converge, per byte sent, when top-k is replaced by a fixed band? <strong>2.</strong> If the band is computed by an analogue optical transform, with its quantisation, clipping and readout noise, how much precision does it need?</p>
+    </div>
+</section>
+
+<section class="slide" id="slide-02">
+    <div class="slide-number">02</div>
+    <h2>The Setup</h2>
+    <p>A GPT of <strong>15,833,472 parameters</strong> (8 layers, width 384, context 256), trained on TinyStories with a 4,096-token byte-level BPE. Eight simulated workers in one process, each with its own data shard, momentum and DeMo state; 8 sequences per worker per step; <strong>3,000 steps</strong>. DeMo&rsquo;s momentum decay is 0.999, and every compressed variant keeps 1/16 of the coefficients.</p>
+    <div class="table-wrap">
+    <table>
+        <tr><th></th><th>Variant</th><th>What is sent</th><th>Seeds</th></tr>
+        <tr><td>A</td><td>AdamW on all-reduced gradients (the baseline)</td><td>dense BF16 gradients</td><td>3</td></tr>
+        <tr><td>B</td><td>DeMo as published: chunked DCT, top-k per 2-D 64&times;64 chunk</td><td>values and positions</td><td>3</td></tr>
+        <tr><td>C</td><td>DeMo with a fixed low-frequency band (2-D 64&times;64, 1-D 256 or 1-D 64 chunks)</td><td>values only</td><td>3 (1-D 64: 1)</td></tr>
+        <tr><td>D</td><td>DeMo with a calibrated band: chosen once from a short window&rsquo;s mean energy map, then frozen</td><td>values only</td><td>3</td></tr>
+        <tr><td>E</td><td>C (1-D 256) with the band computed by an emulated optical transform</td><td>values only</td><td>1 per setting</td></tr>
+        <tr><td>F</td><td>Other fixed shapes of the same size: zig-zag, high band, random positions</td><td>values only</td><td>1 each</td></tr>
+    </table>
+    </div>
+    <ul>
+        <li><strong>1-D chunks</strong> matter because the module does 1&times;N power-of-2 transforms; DeMo&rsquo;s own chunks are 2-D tiles.</li>
+        <li><strong>Diagnostics</strong> every 200 steps, on worker 0: the share of energy that top-k and each band shape would keep at the same k, for a plain momentum, for the delta DeMo actually compresses, and for the gradient.</li>
+        <li>Runs on Colab GPUs (mostly A100; some T4 and L4). GPU runs are close but not bit-identical.</li>
+    </ul>
+    <p style="font-size:0.85rem;">Source: <a href="https://github.com/BrendanJamesLynskey/DeMo_Fixed_Band_Experiment/blob/main/results/tinystories-gpu/results.md">results/tinystories-gpu/results.md</a> (header and section 1) and <a href="https://github.com/BrendanJamesLynskey/DeMo_Fixed_Band_Experiment/blob/main/docs/optics_investigation.md">docs/optics_investigation.md</a>. DeMo is implemented from the paper and checked against the reference code in a test.</p>
+</section>
+
+<section class="slide" id="slide-03">
+    <div class="slide-number">03</div>
+    <h2>Bytes per Step: Payload and Wire (Interactive)</h2>
+    <p>Two ways to count. <strong>Payload</strong> is what a worker originates each step. <strong>Wire</strong> is what it actually sends in its ring collective: an all-reduce for AdamW, an all-gather for DeMo, because each worker&rsquo;s top-k positions differ.</p>
+    <div class="table-wrap">
+    <table>
+        <tr><th>Variant</th><th>Payload / step (bytes)</th><th>vs dense</th><th>Wire / step (bytes)</th><th>Wire vs dense</th></tr>
+        <tr><td>A&nbsp; AdamW, all-reduce</td><td>31,666,944</td><td>1.0&times;</td><td>55,417,152</td><td>1.0&times;</td></tr>
+        <tr><td>B&nbsp; DeMo, top-k</td><td>3,957,960</td><td>8.0&times;</td><td>27,705,720</td><td>2.0&times;</td></tr>
+        <tr><td>C&ndash;F&nbsp; any fixed band</td><td>1,979,184</td><td>16.0&times;</td><td>13,854,288</td><td>4.0&times;</td></tr>
+    </table>
+    </div>
+    <p style="font-size:0.85rem;">Source: results.md, section 1. Values in BF16; top-k positions at the bytes needed for a position within a chunk (with int64 positions, as the reference code sends them, top-k is 9,895,920 bytes, 2.5&times; the compact count). Eight workers.</p>
+    <p>On a ring of N workers an all-reduce sends 2(N&minus;1)/N times its buffer, close to twice whatever N is; an all-gather sends (N&minus;1) times the payload. So with eight workers the payload ratios of 8&times; and 16&times; become <strong>2.0&times; and 4.0&times; on the wire</strong>, and they shrink further as workers are added.</p>
+
+    <div class="control-panel">
+        <div class="sim-grid">
+            <div class="control-row"><label for="bw-n">Workers on the ring</label><input type="range" id="bw-n" min="1" max="7" step="1" value="3"><span class="val" id="bw-n-val">8</span></div>
+        </div>
+        <div class="tier-visual" id="bw-bars" style="margin-bottom:0;"></div>
+        <p id="bw-note" style="font-size:0.85rem; margin-top:0.6rem; margin-bottom:0;"></p>
+    </div>
+    <script>
+    (function(){
+        const $ = id => document.getElementById(id);
+        // payloads per worker per step, from results.md section 1
+        const DENSE = 31666944, TOPK = 3957960, BAND = 1979184;
+        const fmt = (x, d) => x.toLocaleString('en-GB', { minimumFractionDigits: d, maximumFractionDigits: d });
+        function update() {
+            const n = Math.pow(2, +$('bw-n').value);
+            const ar = 2 * (n - 1) / n, ag = n - 1;
+            const rows = [
+                ['A  AdamW, all-reduce', ar * DENSE, false],
+                ['B  top-k, all-gather', ag * TOPK, true],
+                ['C  band, all-gather', ag * BAND, true],
+                ['band, if all-reduced', ar * BAND, false],
+            ];
+            $('bw-n-val').textContent = fmt(n, 0);
+            const max = Math.max(...rows.map(r => r[1]));
+            $('bw-bars').innerHTML = rows.map(([name, b, sel]) => {
+                const w = Math.max(3, 100 * b / max);
+                return '<div class="tier-bar"><span class="tier-label" style="min-width:150px;">' + name + '</span><div style="flex:1;"><div class="tier-fill" style="width:' + w.toFixed(1) +
+                    '%; background:' + (sel ? 'var(--accent-dim)' : 'var(--bg-code)') + '; border:1px solid ' + (sel ? 'var(--accent)' : 'var(--border)') +
+                    '; color:' + (sel ? 'var(--accent)' : 'var(--text-secondary)') + ';">' + fmt(b / 1e6, 2) + ' MB</div></div><span class="tier-cost">' + fmt(rows[0][1] / b, 1) + '&times;</span></div>';
+            }).join('');
+            $('bw-note').textContent = 'Bytes each worker sends per step, linear bars; the right column is the ratio to the dense all-reduce. Computed from results.md’s payloads with the ring formulas above; at 8 workers they reproduce its wire column. The last row is not a run: a fixed band could be summed rather than gathered, because every worker sends the same positions (slide 11).';
+        }
+        $('bw-n').addEventListener('input', update);
+        update();
+    })();
+    </script>
+</section>
+
+<section class="slide" id="slide-04">
+    <div class="slide-number">04</div>
+    <h2>Loss: a Fixed Band Does Not Replace Top-k</h2>
+    <p>Final validation loss after 3,000 steps. Top-k DeMo ends 0.139 above AdamW. Every fixed band ends more than a nat above top-k.</p>
+    <div class="canvas-wrap">
+<svg viewBox="0 0 760 340" width="760" height="340" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Final validation loss for each variant: AdamW 1.646 and top-k DeMo 1.785; every fixed band between 2.700 and 3.244">
+<style>.gl{stroke:#3a322b;stroke-width:1}.lb{fill:#efe8dc;font-family:'Geist Mono',monospace;font-size:11.5px}.v{fill:#efe8dc;font-family:'Geist Mono',monospace;font-size:11px}.ax{fill:#a2978b;font-family:'Geist Mono',monospace;font-size:10px}.bA{fill:#6cb6c4}.bR{fill:#efe8dc;opacity:.55}.bN{fill:#a2978b;opacity:.55}.hit:hover+rect,.row:hover rect.bar{opacity:1}</style>
+<line x1="190.0" y1="22" x2="190.0" y2="300" class="gl"/><text x="190.0" y="316" class="ax" text-anchor="middle">0</text>
+<line x1="261.4" y1="22" x2="261.4" y2="300" class="gl"/><text x="261.4" y="316" class="ax" text-anchor="middle">0.5</text>
+<line x1="332.9" y1="22" x2="332.9" y2="300" class="gl"/><text x="332.9" y="316" class="ax" text-anchor="middle">1</text>
+<line x1="404.3" y1="22" x2="404.3" y2="300" class="gl"/><text x="404.3" y="316" class="ax" text-anchor="middle">1.5</text>
+<line x1="475.7" y1="22" x2="475.7" y2="300" class="gl"/><text x="475.7" y="316" class="ax" text-anchor="middle">2</text>
+<line x1="547.1" y1="22" x2="547.1" y2="300" class="gl"/><text x="547.1" y="316" class="ax" text-anchor="middle">2.5</text>
+<line x1="618.6" y1="22" x2="618.6" y2="300" class="gl"/><text x="618.6" y="316" class="ax" text-anchor="middle">3</text>
+<line x1="690.0" y1="22" x2="690.0" y2="300" class="gl"/><text x="690.0" y="316" class="ax" text-anchor="middle">3.5</text>
+<text x="440.0" y="332" class="ax" text-anchor="middle">final validation loss after 3,000 steps (lower is better)</text>
+<g class="row"><title>A  AdamW, dense: 1.646 (3 seeds)</title><rect x="0" y="30" width="760" height="30" fill="transparent"/><text x="180" y="44.0" class="lb" text-anchor="end">A  AdamW, dense</text><path class="bar bR" d="M190 30 h231.1 a4 4 0 0 1 4 4 v10 a4 4 0 0 1 -4 4 h-231.1 z"/><text x="431.1" y="43.0" class="v">1.646</text></g>
+<g class="row"><title>B  DeMo, top-k: 1.785 (3 seeds)</title><rect x="0" y="60" width="760" height="30" fill="transparent"/><text x="180" y="74.0" class="lb" text-anchor="end">B  DeMo, top-k</text><path class="bar bA" d="M190 60 h251.0 a4 4 0 0 1 4 4 v10 a4 4 0 0 1 -4 4 h-251.0 z"/><text x="451.0" y="73.0" class="v">1.785</text></g>
+<g class="row"><title>F  random fixed set: 2.700 (1 seed)</title><rect x="0" y="90" width="760" height="30" fill="transparent"/><text x="180" y="104.0" class="lb" text-anchor="end">F  random fixed set</text><path class="bar bN" d="M190 90 h381.7 a4 4 0 0 1 4 4 v10 a4 4 0 0 1 -4 4 h-381.7 z"/><text x="581.7" y="103.0" class="v">2.700</text></g>
+<g class="row"><title>F  zig-zag band: 3.028 (1 seed)</title><rect x="0" y="120" width="760" height="30" fill="transparent"/><text x="180" y="134.0" class="lb" text-anchor="end">F  zig-zag band</text><path class="bar bN" d="M190 120 h428.6 a4 4 0 0 1 4 4 v10 a4 4 0 0 1 -4 4 h-428.6 z"/><text x="628.6" y="133.0" class="v">3.028</text></g>
+<g class="row"><title>D  calibrated band: 3.087 (3 seeds)</title><rect x="0" y="150" width="760" height="30" fill="transparent"/><text x="180" y="164.0" class="lb" text-anchor="end">D  calibrated band</text><path class="bar bN" d="M190 150 h437.0 a4 4 0 0 1 4 4 v10 a4 4 0 0 1 -4 4 h-437.0 z"/><text x="637.0" y="163.0" class="v">3.087</text></g>
+<g class="row"><title>C  low band, 1-D 256: 3.124 (3 seeds)</title><rect x="0" y="180" width="760" height="30" fill="transparent"/><text x="180" y="194.0" class="lb" text-anchor="end">C  low band, 1-D 256</text><path class="bar bN" d="M190 180 h442.3 a4 4 0 0 1 4 4 v10 a4 4 0 0 1 -4 4 h-442.3 z"/><text x="642.3" y="193.0" class="v">3.124</text></g>
+<g class="row"><title>C  low band, 1-D 64: 3.137 (1 seed)</title><rect x="0" y="210" width="760" height="30" fill="transparent"/><text x="180" y="224.0" class="lb" text-anchor="end">C  low band, 1-D 64</text><path class="bar bN" d="M190 210 h444.1 a4 4 0 0 1 4 4 v10 a4 4 0 0 1 -4 4 h-444.1 z"/><text x="644.1" y="223.0" class="v">3.137</text></g>
+<g class="row"><title>C  low band, 2-D 64x64: 3.158 (3 seeds)</title><rect x="0" y="240" width="760" height="30" fill="transparent"/><text x="180" y="254.0" class="lb" text-anchor="end">C  low band, 2-D 64x64</text><path class="bar bN" d="M190 240 h447.1 a4 4 0 0 1 4 4 v10 a4 4 0 0 1 -4 4 h-447.1 z"/><text x="647.1" y="253.0" class="v">3.158</text></g>
+<g class="row"><title>F  high band: 3.244 (1 seed)</title><rect x="0" y="270" width="760" height="30" fill="transparent"/><text x="180" y="284.0" class="lb" text-anchor="end">F  high band</text><path class="bar bN" d="M190 270 h459.4 a4 4 0 0 1 4 4 v10 a4 4 0 0 1 -4 4 h-459.4 z"/><text x="659.4" y="283.0" class="v">3.244</text></g>
+</svg>    </div>
+    <div class="table-wrap">
+    <table>
+        <tr><th>Variant</th><th>Seeds</th><th>Final loss</th><th>Above top-k</th></tr>
+        <tr><td>A&nbsp; AdamW, dense all-reduce</td><td>3</td><td>1.646 &plusmn; 0.005</td><td>&minus;0.139</td></tr>
+        <tr><td>B&nbsp; DeMo, top-k, 2-D 64&times;64</td><td>3</td><td>1.785 &plusmn; 0.007</td><td>&ndash;</td></tr>
+        <tr><td>C&nbsp; fixed low band, 1-D 256</td><td>3</td><td>3.124 &plusmn; 0.008</td><td>1.339</td></tr>
+        <tr><td>C&nbsp; fixed low band, 1-D 64</td><td>1</td><td>3.137</td><td>1.352</td></tr>
+        <tr><td>C&nbsp; fixed low band, 2-D 64&times;64</td><td>3</td><td>3.158 &plusmn; 0.009</td><td>1.373</td></tr>
+        <tr><td>D&nbsp; calibrated band, 2-D 64&times;64</td><td>3</td><td>3.087 &plusmn; 0.027</td><td>1.302</td></tr>
+        <tr><td>F&nbsp; zig-zag / high / random, 2-D 64&times;64</td><td>1 each</td><td>3.028 / 3.244 / 2.700</td><td>1.243 / 1.459 / 0.915</td></tr>
+    </table>
+    </div>
+    <p style="font-size:0.85rem;">Source: results.md, section 1. &plusmn; is the sample standard deviation over seeds.</p>
+    <ul>
+        <li><strong>The low-frequency bands</strong> (low, zig-zag, calibrated) end 1.24 to 1.37 above top-k; the high band, 1.46.</li>
+        <li><strong>A random fixed set of positions beats every structured band</strong> (2.700, one seed): the structure of a low band does not help.</li>
+        <li><strong>The chunk shape barely matters for the low band:</strong> 3.124 (1-D 256), 3.137 (1-D 64), 3.158 (2-D).</li>
+    </ul>
+</section>
+
+<section class="slide" id="slide-05">
+    <div class="slide-number">05</div>
+    <h2>Loss per Byte: Steps to Reach a Loss</h2>
+    <p>Half the bytes per step would pay if the band reached a given loss in less than twice the steps. It does not come close. Steps to the first evaluation (every 200 steps) at or below each target, mean over seeds, shown only when every seed gets there; payload in brackets.</p>
+    <div class="table-wrap">
+    <table>
+        <tr><th>Variant</th><th>to 3.158 (C, 2-D)</th><th>to 3.124 (C, 1-D 256)</th><th>to 3.087 (D)</th><th>to 1.785 (B)</th></tr>
+        <tr><td>A&nbsp; AdamW</td><td>400 (12.67 GB)</td><td>400 (12.67 GB)</td><td>400 (12.67 GB)</td><td>2,000 (63.33 GB)</td></tr>
+        <tr><td>B&nbsp; top-k</td><td>400 (1.58 GB)</td><td>400 (1.58 GB)</td><td>400 (1.58 GB)</td><td>&ndash;</td></tr>
+        <tr><td>C&nbsp; low band, 1-D 256</td><td>2,667 (5.28 GB)</td><td>&ndash;</td><td>&ndash;</td><td>&ndash;</td></tr>
+        <tr><td>D&nbsp; calibrated band</td><td>2,533 (5.01 GB)</td><td>2,667 (5.28 GB)</td><td>&ndash;</td><td>&ndash;</td></tr>
+        <tr><td>F&nbsp; random fixed set</td><td>1,200 (2.38 GB)</td><td>1,200 (2.38 GB)</td><td>1,400 (2.77 GB)</td><td>&ndash;</td></tr>
+        <tr><td>F&nbsp; zig-zag band</td><td>2,200 (4.35 GB)</td><td>2,400 (4.75 GB)</td><td>2,600 (5.15 GB)</td><td>&ndash;</td></tr>
+    </table>
+    </div>
+    <p style="font-size:0.85rem;">Source: results.md, section 1, <em>Steps to reach a loss</em>. Payload = steps &times; bytes each worker originates per step. A dash: not every seed reached the target. The 2-D low band (3 seeds) does not reach even its own mean on every seed.</p>
+    <div class="callout">
+        <div class="callout-label">Per byte, top-k still wins</div>
+        <p>Top-k reaches the 1-D band&rsquo;s final loss (3.124) by step 400, after 1.58 GB per worker. The band itself needs 2,667 steps and 5.28 GB just to reach 3.158, and not every seed reaches 3.124. On the wire every DeMo figure is seven times its payload and AdamW&rsquo;s 1.75 times (slide 03), so the comparison between DeMo variants is unchanged, and top-k&rsquo;s lead over AdamW shrinks from 8&times; to 2&times; per step.</p>
+    </div>
+</section>
+
+<section class="slide" id="slide-06">
+    <div class="slide-number">06</div>
+    <h2>Why: the Band Misses the Momentum's Energy</h2>
+    <p>A fixed band can only work if the energy of what DeMo compresses sits in it. The diagnostics measure the share of energy each selector would keep at the same k, on worker 0, averaged over every diagnostic after step 200, all tensors together. A random set keeps about the keep fraction (1/16, about 0.06).</p>
+    <div class="table-wrap">
+    <table>
+        <tr><th>Run, chunks</th><th>Tensor</th><th>Top-k</th><th>Low band</th><th>Random</th></tr>
+        <tr><td>C, 2-D 64&times;64</td><td>momentum</td><td>0.643</td><td><strong>0.013</strong></td><td>0.065</td></tr>
+        <tr><td>C, 2-D 64&times;64</td><td>gradient</td><td>0.619</td><td>0.305</td><td>0.059</td></tr>
+        <tr><td>C, 2-D 64&times;64</td><td>delta</td><td>0.649</td><td>0.000</td><td>0.065</td></tr>
+        <tr><td>C, 1-D 256</td><td>momentum</td><td>0.429</td><td>0.146</td><td>0.049</td></tr>
+        <tr><td>C, 1-D 256</td><td>gradient</td><td>0.485</td><td>0.228</td><td>0.053</td></tr>
+        <tr><td>C, 1-D 256</td><td>delta</td><td>0.417</td><td>0.000</td><td>0.048</td></tr>
+        <tr><td>D, 2-D 64&times;64</td><td>momentum</td><td>0.578</td><td>0.109 (calibrated band 0.190)</td><td>0.063</td></tr>
+    </table>
+    </div>
+    <p style="font-size:0.85rem;">Source: results.md, section 2. <em>Momentum</em> = a plain momentum of the same decay, never compressed; <em>delta</em> = what DeMo actually compresses (momentum plus the residual error feedback keeps); <em>gradient</em> = the step&rsquo;s gradient.</p>
+    <ul>
+        <li><strong>In DeMo&rsquo;s 2-D chunks the low band keeps 0.013 of the momentum&rsquo;s energy</strong>: about a fifth of a random set (0.065), against 0.643 for top-k at the same k.</li>
+        <li><strong>The gradient&rsquo;s low band is much fuller</strong> (0.305 in 2-D). But DeMo compresses a momentum (decay 0.999), not a gradient, and in 2-D chunks the momentum&rsquo;s low band is nearly empty.</li>
+        <li><strong>1-D chunks help the band, but not enough:</strong> 0.146 of the momentum, about a third of top-k&rsquo;s 0.429.</li>
+        <li><strong>The delta holds nothing in the band:</strong> error feedback removes the band every step, so what remains to compress is all out of band. That residual becomes the optics&rsquo; problem (slide 08).</li>
+    </ul>
+</section>
+
+<section class="slide" id="slide-07">
+    <div class="slide-number">07</div>
+    <h2>Emulating the Optics</h2>
+    <p>Variant E computes the 1-D 256 band as an analogue optical transform would, so that its errors enter training. The emulator follows the module&rsquo;s constraints: power-of-2 transform sizes, binary (NRZ) input, and only multiply-accumulates for anything data-dependent, so no per-chunk maximum.</p>
+    <div class="diagram-flow">
+        <span class="diagram-box">delta (BF16)</span>
+        <span class="diagram-arrow">&rarr;</span>
+        <span class="diagram-box">scale to full scale, saturate</span>
+        <span class="diagram-arrow">&rarr;</span>
+        <span class="diagram-box">8-bit two&rsquo;s complement</span>
+        <span class="diagram-arrow">&rarr;</span>
+        <span class="diagram-box accent">one optical pass per bit plane, noisy readout</span>
+        <span class="diagram-arrow">&rarr;</span>
+        <span class="diagram-box">recombine with weights 2<sup>b</sup></span>
+    </div>
+    <ul>
+        <li><strong>Input full scale:</strong> kappa = 4 times the delta&rsquo;s RMS, measured over a calibration window (steps 200 to 299): a sum of squares, no comparisons. Inputs beyond it saturate, and the clip rate is logged.</li>
+        <li><strong>Bit planes:</strong> each binary digit of the input passes through the transform separately; the planes are recombined with weights 2<sup>b</sup>, the top one negative. The number of planes is the number of optical passes (4, 8 or 12 tested).</li>
+        <li><strong>Readout noise</strong> per plane: RMS = FS &times; 2<sup>&minus;ENOB</sup> &times; 2/&radic;12, with FS = 16, the largest row L1 norm of a 256-point orthonormal DCT. ENOB 6, 8, 10 and 12.</li>
+        <li><strong>The emulator is accurate</strong> on white input (where the band holds 1/16 of the energy): 8 planes without readout noise reproduce the exact band to 0.9% RMS error, 12 planes to 0.2%, and 8 planes at ENOB 8 to 16%.</li>
+        <li><strong>A perfect-optics control</strong> (no quantisation, no noise) is C with E&rsquo;s power-of-2 chunking: at width 384 the 17 LayerNorm vectors are cut into runs of 128 rather than DeMo&rsquo;s 192.</li>
+    </ul>
+    <p style="font-size:0.85rem;">Source: <a href="https://github.com/BrendanJamesLynskey/DeMo_Fixed_Band_Experiment/blob/main/docs/optics_investigation.md">docs/optics_investigation.md</a>, sections 1, 2 and 5; results.md, section 3. The noise model is the series&rsquo; own, not a measured characteristic of the module.</p>
+</section>
+
+<section class="slide" id="slide-08">
+    <div class="slide-number">08</div>
+    <h2>The First Optics Runs Diverged</h2>
+    <p>As first designed, error feedback removed the <strong>exact</strong> band from each sender&rsquo;s delta, while every receiver applied the optics&rsquo; version. All six runs diverged; the same band computed exactly trained normally.</p>
+    <div class="table-wrap">
+    <table>
+        <tr><th>Run (1-D 256)</th><th>Loss at 400</th><th>Loss at 3,000</th><th>Clip rate 300&ndash;400</th><th>Clip rate 400&ndash;600</th></tr>
+        <tr><td>C, exact band (seed 0)</td><td>4.07</td><td>3.12</td><td>&ndash;</td><td>&ndash;</td></tr>
+        <tr><td>E, ENOB 6, 8 planes</td><td>4.56</td><td>11.15</td><td>0.8%</td><td>38.6%</td></tr>
+        <tr><td>E, ENOB 8, 8 planes</td><td>4.59</td><td>214.65</td><td>1.0%</td><td>41.5%</td></tr>
+        <tr><td>E, ENOB 10, 8 planes</td><td>4.47</td><td>42.18</td><td>0.8%</td><td>34.9%</td></tr>
+        <tr><td>E, ENOB 12, 8 planes</td><td>4.51</td><td>336.98</td><td>0.8%</td><td>42.9%</td></tr>
+        <tr><td>E, ENOB 8, 4 planes</td><td>5.20</td><td>344.39</td><td>0.9%</td><td>50.8%</td></tr>
+        <tr><td>E, ENOB 8, 12 planes</td><td>4.49</td><td>558.83</td><td>0.8%</td><td>37.0%</td></tr>
+    </table>
+    </div>
+    <p><strong>Not analogue noise:</strong> ENOB 12 ended worse than ENOB 6, and 12 planes worse than 8. The cause is the residual. Error feedback keeps everything not sent, decaying only by 0.999 per step; with a fixed band, the band is removed every step and the out-of-band residual piles up.</p>
+    <div class="table-wrap">
+    <table>
+        <tr><th>Step</th><th>200</th><th>400</th><th>1,000</th><th>2,000</th><th>3,000</th></tr>
+        <tr><td>Band share of the delta&rsquo;s energy</td><td>1.4&ndash;2.3e-3</td><td>2.3&ndash;2.9e-4</td><td>1.1&ndash;1.5e-4</td><td>3.9&ndash;4.2e-5</td><td>1.6&ndash;1.8e-5</td></tr>
+    </table>
+    </div>
+    <ul>
+        <li><strong>The full scale goes stale:</strong> set at step 300 by a residual that keeps growing, it saturates 30 to 50% of inputs.</li>
+        <li><strong>The band sinks below the error:</strong> per band coefficient the RMS is about &radic;(16 &times; share) of the input RMS, 0.016 by the end. Quantisation alone adds 0.009; readout noise at ENOB 8 adds 0.17 after recombining 8 planes (0.011 at ENOB 12).</li>
+        <li><strong>The error is a bias, not noise:</strong> the residual changes slowly, so quantisation and clipping errors repeat almost identically each step, are never corrected, and DeMo&rsquo;s sign update turns a consistent error into a full step the wrong way, every step.</li>
+    </ul>
+    <p style="font-size:0.85rem;">Source: docs/optics_investigation.md, sections 1 and 2 (diagnostics of the three C 1-D 256 seeds); final losses in results.md, section 3.</p>
+</section>
+
+<section class="slide" id="slide-09">
+    <div class="slide-number">09</div>
+    <h2>The Fix: Feed Back What Was Sent</h2>
+    <p>Each idea was first tried on a small model on the CPU (TinyShakespeare, 4 layers, width 128, 600 steps, 1-D 256 chunks; about 12 minutes a run) before spending GPU time. Final validation loss at step 600, with the clip rate over the last interval:</p>
+    <div class="table-wrap">
+    <table>
+        <tr><th>Configuration (8 planes, ENOB 8 unless stated)</th><th>Final loss</th></tr>
+        <tr><td>C, exact band (reference)</td><td>2.464</td></tr>
+        <tr><td>E as first designed: full scale fixed, feedback of the exact band</td><td>8.809 (41.8%)</td></tr>
+        <tr><td>Full scale re-set every 50 steps, feedback of the exact band</td><td>3.404 (0.6%)</td></tr>
+        <tr><td>&hellip; at ENOB 12</td><td>3.069 (0.7%)</td></tr>
+        <tr><td>&hellip; with no readout noise at all</td><td>2.967 (0.7%)</td></tr>
+        <tr><td>Full scale re-set every 50 steps, <strong>feedback of the band sent</strong></td><td>2.535 (0.5%)</td></tr>
+        <tr><td>Full scale fixed, <strong>feedback of the band sent</strong></td><td>2.520 (5.7%)</td></tr>
+    </table>
+    </div>
+    <ol>
+        <li>The failure reproduces at small scale.</li>
+        <li>Re-setting the full scale removes most clipping, yet the loss still drifts: saturation was not the whole problem.</li>
+        <li>Even with no readout noise the loss stays 0.5 above the exact band: quantisation and clipping errors, never fed back, are enough.</li>
+        <li>Feeding back what was actually sent fixes it, with or without re-setting the full scale.</li>
+    </ol>
+    <div class="callout">
+        <div class="callout-label">Why the fix is physically allowed</div>
+        <p>DeMo exchanges its compressed values with an <strong>all-gather</strong>: every worker receives every worker&rsquo;s values, its own included. So a sender sees what the optics produced for its own data, noise and all, and can subtract that from its delta instead of the exact band. Nothing extra crosses the link. The optional full-scale re-set uses the delta&rsquo;s mean square over an interval: multiply-accumulates only.</p>
+    </div>
+    <p style="font-size:0.85rem;">Source: docs/optics_investigation.md, sections 3 and 4; <a href="https://github.com/BrendanJamesLynskey/DeMo_Fixed_Band_Experiment/blob/main/results/shakespeare-optics-check/results.md">results/shakespeare-optics-check/results.md</a>.</p>
+</section>
+
+<section class="slide" id="slide-10">
+    <div class="slide-number">10</div>
+    <h2>ENOB and Bit Planes</h2>
+    <p>The optics runs were repeated on TinyStories with feedback of the band sent and the full scale re-set every 100 steps, plus one with the full scale fixed, and the perfect-optics control. One seed each.</p>
+    <div class="canvas-wrap">
+<svg viewBox="0 0 620 300" width="620" height="300" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Final loss of the repaired optics band against ENOB: 3.423 at ENOB 6, 3.017 at 8, 2.878 at 10, 2.905 at 12; the exact band ends at 3.124">
+<style>.gl{stroke:#3a322b;stroke-width:1}.ax{fill:#a2978b;font-family:'Geist Mono',monospace;font-size:10px}.lb{fill:#efe8dc;font-family:'Geist Mono',monospace;font-size:10.5px}.ln{stroke:#6cb6c4;stroke-width:2;fill:none}.ref{stroke:#a2978b;stroke-width:1.5;stroke-dasharray:6 4}.pt{fill:#6cb6c4;stroke:#231e1a;stroke-width:2}.p2{fill:#231e1a;stroke:#efe8dc;stroke-width:2}</style>
+<line x1="60" y1="255.0" x2="470" y2="255.0" class="gl"/><text x="52" y="258.0" class="ax" text-anchor="end">2.8</text>
+<line x1="60" y1="221.4" x2="470" y2="221.4" class="gl"/><text x="52" y="224.4" class="ax" text-anchor="end">2.9</text>
+<line x1="60" y1="187.9" x2="470" y2="187.9" class="gl"/><text x="52" y="190.9" class="ax" text-anchor="end">3.0</text>
+<line x1="60" y1="154.3" x2="470" y2="154.3" class="gl"/><text x="52" y="157.3" class="ax" text-anchor="end">3.1</text>
+<line x1="60" y1="120.7" x2="470" y2="120.7" class="gl"/><text x="52" y="123.7" class="ax" text-anchor="end">3.2</text>
+<line x1="60" y1="87.1" x2="470" y2="87.1" class="gl"/><text x="52" y="90.1" class="ax" text-anchor="end">3.3</text>
+<line x1="60" y1="53.6" x2="470" y2="53.6" class="gl"/><text x="52" y="56.6" class="ax" text-anchor="end">3.4</text>
+<line x1="60" y1="20.0" x2="470" y2="20.0" class="gl"/><text x="52" y="23.0" class="ax" text-anchor="end">3.5</text>
+<text x="111.2" y="271" class="ax" text-anchor="middle">6</text>
+<text x="213.8" y="271" class="ax" text-anchor="middle">8</text>
+<text x="316.2" y="271" class="ax" text-anchor="middle">10</text>
+<text x="418.8" y="271" class="ax" text-anchor="middle">12</text>
+<text x="265.0" y="292" class="ax" text-anchor="middle">ENOB of each bit plane's readout</text>
+<text x="14" y="137.5" class="ax" text-anchor="middle" transform="rotate(-90 14 137.5)">final validation loss</text>
+<line x1="60" y1="146.2" x2="470" y2="146.2" class="ref"/>
+<line x1="60" y1="140.5" x2="470" y2="140.5" class="ref"/>
+<text x="476" y="157.2" class="lb">exact band 3.124</text>
+<text x="476" y="137.5" class="lb">perfect optics 3.141</text>
+<path class="ln" d="M111.2 45.8 L213.8 182.2 L316.2 228.8 L418.8 219.8"/>
+<g><title>ENOB 6, 8 planes: 3.423</title><circle cx="111.2" cy="45.8" r="12" fill="transparent"/><circle cx="111.2" cy="45.8" r="5" class="pt"/></g><text x="120.2" y="37.8" class="lb">3.423</text>
+<g><title>ENOB 8, 8 planes: 3.017</title><circle cx="213.8" cy="182.2" r="12" fill="transparent"/><circle cx="213.8" cy="182.2" r="5" class="pt"/></g><text x="222.8" y="199.2" class="lb">3.017</text>
+<g><title>ENOB 10, 8 planes: 2.878</title><circle cx="316.2" cy="228.8" r="12" fill="transparent"/><circle cx="316.2" cy="228.8" r="5" class="pt"/></g><text x="325.2" y="243.8" class="lb">2.878</text>
+<g><title>ENOB 12, 8 planes: 2.905</title><circle cx="418.8" cy="219.8" r="12" fill="transparent"/><circle cx="418.8" cy="219.8" r="5" class="pt"/></g><text x="427.8" y="211.8" class="lb">2.905</text>
+<g><title>ENOB 8, 4 planes 3.137</title><circle cx="213.8" cy="141.9" r="12" fill="transparent"/><rect x="209.2" y="137.4" width="9" height="9" class="p2"/></g><text x="203.8" y="129.9" class="lb" text-anchor="end">4 planes 3.137</text>
+<g><title>ENOB 8, 12 planes 3.024</title><circle cx="213.8" cy="179.8" r="12" fill="transparent"/><rect x="209.2" y="175.3" width="9" height="9" class="p2"/></g><text x="203.8" y="183.8" class="lb" text-anchor="end">12 planes 3.024</text>
+<text x="121.2" y="49.8" class="lb" dx="40">8 planes (line)</text>
+</svg>    </div>
+    <div class="table-wrap">
+    <table>
+        <tr><th>Configuration (1-D 256)</th><th>Final loss</th><th>Clip rate (whole run)</th></tr>
+        <tr><td>C, exact band (3 seeds)</td><td>3.124 &plusmn; 0.008</td><td>&ndash;</td></tr>
+        <tr><td>E, perfect optics (control)</td><td>3.141</td><td>0.00%</td></tr>
+        <tr><td>E, ENOB 6 / 8 / 10 / 12, 8 planes</td><td>3.423 / 3.017 / 2.878 / 2.905</td><td>0.28% / 0.29% / 0.30% / 0.30%</td></tr>
+        <tr><td>E, ENOB 8, 4 / 12 planes</td><td>3.137 / 3.024</td><td>0.22% / 0.30%</td></tr>
+        <tr><td>E, ENOB 8, 8 planes, full scale fixed</td><td>3.021</td><td>1.34%</td></tr>
+    </table>
+    </div>
+    <p style="font-size:0.85rem;">Source: results.md, sections 1 and 3; docs/optics_investigation.md, section 6.</p>
+    <ul>
+        <li><strong>Every repaired run trains</strong>, with clipping near 0.3%. Re-setting the full scale adds nothing once errors are fed back: 3.017 with it, 3.021 without.</li>
+        <li><strong>ENOB 8 is enough for the band itself.</strong> ENOB 6 costs 0.3 against the exact band (3.423). Four planes cost 0.12 against eight; twelve gain nothing.</li>
+        <li><strong>With 8 or more planes, from ENOB 8 up, the optics band ends below the exact band</strong>, by up to 0.25 (ENOB 10). The control (3.141, 0.017 above C&rsquo;s mean) rules out the power-of-2 chunking as the cause; it ran on a T4, the others on an A100.</li>
+    </ul>
+    <div class="callout">
+        <div class="callout-label">A hypothesis, not a result</div>
+        <p>Why would an inexact band beat the exact one? Possibly because quantisation and clipping are non-linear: the values the optics produces carry a little of the large out-of-band residual into the 16 positions sent, and with feedback of what was sent that part is then removed from the delta, so some out-of-band information reaches the model. It would fit the random band beating the low band. But <strong>every optics run here is a single seed</strong>, and on TinyShakespeare the repaired optics ended slightly <em>above</em> the exact band (2.520 to 2.535 against 2.464). Testing it needs several seeds and a measurement of the out-of-band energy in the values sent.</p>
+    </div>
+</section>
+
+<section class="slide" id="slide-11">
+    <div class="slide-number">11</div>
+    <h2>What It Means for a Link Module</h2>
+    <p>The experiment answers deck 02&rsquo;s question for this model and scale. Against the five tests of <a href="https://brendanjameslynskey.github.io/CiT_01_Compute_in_Transit/#slide-10">deck 01</a>:</p>
+    <div class="table-wrap">
+    <table>
+        <tr><th>Test</th><th>Fixed band computed in transit</th></tr>
+        <tr><td>Operations</td><td><span class="badge ok">pass</span> A transform and a gather; full-scale tracking by multiply-accumulate. Top-k would need comparisons.</td></tr>
+        <tr><td>Precision</td><td><span class="badge ok">pass</span> ENOB 8 and 8 planes match or beat the exact band, once the values sent are fed back.</td></tr>
+        <tr><td>Bottleneck (convergence per byte)</td><td><span class="badge bad">fail</span> Every fixed band ends more than a nat above top-k; top-k reaches the band&rsquo;s final loss in 400 steps.</td></tr>
+        <tr><td>Placement</td><td><span class="badge warn">tension</span> See below.</td></tr>
+    </table>
+    </div>
+    <div class="diagram-grid cols-2">
+        <div class="diagram-panel accent-border">
+            <h4>What a fixed band could gain</h4>
+            <p>Every worker sends the same positions, and DeMo averages before taking the sign, so a fixed band could be <strong>summed</strong> in the network rather than gathered: an all-reduce of 1,979,184 bytes sends 3.46 MB per worker with eight workers, 16&times; under dense on the wire too (derived from results.md&rsquo;s payload with the ring formula; not a run). That is the strongest case for computing in transit.</p>
+        </div>
+        <div class="diagram-panel accent-border">
+            <h4>What the fix depends on</h4>
+            <p>Feedback of the values sent relies on the all-gather returning each worker&rsquo;s own optical output. An all-reduce returns only the sum. Keeping the fix would need the module to hand each sender back its own result (a loopback), or the band to be computed at the sender. And summing streams needs them to meet: a switch, not a pluggable.</p>
+        </div>
+    </div>
+    <div class="callout">
+        <div class="callout-label">Verdict</div>
+        <p>A photonic link module (<a href="https://arxiv.org/abs/2608.21536">arXiv:2608.21536</a>) cannot do DeMo&rsquo;s top-k, and a fixed band computed in transit is not a substitute for it at this scale: the optics is precise enough, but the band is the wrong selection. The seriesThe candidate deck 02 ranked first survives only ifrsquo; strongest candidate survives only if a selection with no comparisons can be found that keeps the momentum&rsquo;s energy.</p>
+    </div>
+</section>
+
+<section class="slide" id="slide-12">
+    <div class="slide-number">12</div>
+    <h2>Limits, Next Steps, and What to Take Away</h2>
+    <div class="diagram-grid cols-2">
+        <div class="diagram-panel accent-border">
+            <h4>Limits</h4>
+            <ul>
+                <li>One small model (15.8M parameters), one data set, 3,000 steps, eight simulated workers.</li>
+                <li>One seed for every E and F run; the optics-beats-exact finding rests on single seeds.</li>
+                <li>The learning rate was tuned on top-k and AdamW only, and reused for every fixed-band variant.</li>
+                <li>The optics is emulated with the series&rsquo; own noise model, not measured on the module.</li>
+                <li>Wire bytes assume ring collectives; no latency or link model yet.</li>
+            </ul>
+        </div>
+        <div class="diagram-panel accent-border">
+            <h4>Next</h4>
+            <ul>
+                <li>A discrete-event model of training transit across data centres, fed by these bytes per sync (wire, not payload) and the steps-to-loss ladder.</li>
+                <li>More seeds for E, and a measurement of out-of-band energy in the values sent, to test the hypothesis of slide 10.</li>
+                <li>Selections without comparisons that track the momentum: a band re-calibrated periodically, or fixed random sets that change by a known schedule.</li>
+            </ul>
+        </div>
+    </div>
+    <ul>
+        <li><strong>A fixed band does not replace top-k.</strong> Top-k ends at 1.785, AdamW at 1.646, every low-frequency band 1.24 to 1.37 above top-k, a random fixed set 0.92 above.</li>
+        <li><strong>Half the bytes does not pay:</strong> top-k reaches 3.124 in 400 steps (1.58 GB); the band needs 2,667 steps and 5.28 GB to reach 3.158.</li>
+        <li><strong>Why:</strong> in 2-D chunks the low band keeps 0.013 of the momentum&rsquo;s energy, a fifth of a random set; top-k keeps 0.643.</li>
+        <li><strong>Count wire bytes:</strong> with eight workers DeMo&rsquo;s all-gather turns 8&times; and 16&times; payload savings into 2.0&times; and 4.0&times;.</li>
+        <li><strong>The optics needs its errors fed back.</strong> Feeding back the exact band diverged in all six runs; feeding back the values sent, which an all-gather returns, trains, and ENOB 8 suffices.</li>
+        <li><strong>The optics improvement over the exact band is a hypothesis</strong>, from one seed per run.</li>
+    </ul>
+</section>
+
+<!-- ════════════════════════════════════ Footer ════════════════════════════════════ -->
+<footer class="footer">
+    <p>Part of the <a href="https://github.com/BrendanJamesLynskey/LLM_Hub_Compute_in_Transit">Compute in Transit series</a> &middot; <a href="https://brendanjameslynskey.github.io/LLM_Hub_Compute_in_Transit/#glossary">glossary: every concept and where it is explained</a> &middot; numbers: <a href="https://github.com/BrendanJamesLynskey/DeMo_Fixed_Band_Experiment/blob/main/results/tinystories-gpu/results.md">results.md</a> and <a href="https://github.com/BrendanJamesLynskey/DeMo_Fixed_Band_Experiment/blob/main/docs/optics_investigation.md">optics_investigation.md</a> in <a href="https://github.com/BrendanJamesLynskey/DeMo_Fixed_Band_Experiment">DeMo_Fixed_Band_Experiment</a></p>
+    <p style="margin-top: 0.5rem; font-size: 0.8rem;"><a href="https://brendanjameslynskey.github.io/CiT_03_Data_Movement_in_LLM_Inference/">&larr; 03 Data Movement in LLM Inference</a> &middot; <a href="https://brendanjameslynskey.github.io/CiT_02_Data_Movement_in_LLM_Training/">02 Data Movement in LLM Training</a> &middot; <a href="https://brendanjameslynskey.github.io/CiT_01_Compute_in_Transit/">01 Compute in Transit: the budget and the five tests</a></p>
+    <p style="margin-top: 0.5rem; font-size: 0.8rem;">Sister series: <a href="https://brendanjameslynskey.github.io/LLM_Hub_Fourier_Optics_Inference/">Fourier Optics for Inference</a> &middot; <a href="https://brendanjameslynskey.github.io/LLM_Hub_Inference_Simulators/">LLM Inference Simulators</a> &middot; <a href="https://brendanjameslynskey.github.io/FHE_Hub_Accelerator_Simulators/">FHE Accelerator Simulators</a> &middot; <a href="https://brendanjameslynskey.github.io/SimEng_Hub_Toolkit/">Simulation Engineering Toolkit</a></p>
+</footer>
+
+<script>
+    // Smooth scroll for TOC links
+    document.querySelectorAll('a[href^="#"]').forEach(anchor => {
+        anchor.addEventListener('click', function (e) {
+            e.preventDefault();
+            const target = document.querySelector(this.getAttribute('href'));
+            if (target) target.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        });
+    });
+
+    // Subtle fade-in on scroll
+    const observer = new IntersectionObserver((entries) => {
+        entries.forEach(entry => {
+            if (entry.isIntersecting) {
+                entry.target.style.opacity = '1';
+                entry.target.style.transform = 'translateY(0)';
+            }
+        });
+    }, { threshold: 0.1 });
+    document.querySelectorAll('.slide').forEach(slide => {
+        slide.style.opacity = '0';
+        slide.style.transform = 'translateY(30px)';
+        slide.style.transition = 'opacity 0.6s ease, transform 0.6s ease';
+        observer.observe(slide);
+    });
+</script>
+
+</body>
+</html>
